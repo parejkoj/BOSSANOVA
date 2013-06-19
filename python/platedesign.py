@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 plt.ion()
 
-import csv_parse
+import pyfits
 import pairs.mr_spherematch
 
 coll_r = 62./3600. # fiber collision radius
@@ -65,8 +65,9 @@ def plot_plate(radec,center,hexbin=False):
     #map.tissot(center[0],center[1],1.5,1000,edgecolor='red',facecolor='none')
 #...
 
-head,data = csv_parse.read('ngc3254-r21.5_90arcmin.csv')
+data = pyfits.open('../data/ngc3254-r21.5_90arcmin.fits.gz')[1].data
 print "total targs:",len(data)
+# use this to not restrict targets at all.
 #test = np.ones(len(data),dtype=bool)
 test = data.r < 21.1
 radec = np.array(zip(data[test].ra,data[test].dec))
