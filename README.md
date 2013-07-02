@@ -19,3 +19,16 @@ and also Figures 7 and 8 for a S/N vs. redshift failure rate plot. Takeaway
 point: SN_r^2 ~> 9 should get us what we want.
 
 http://adsabs.harvard.edu/abs/2012AJ....144..144B
+
+Sky fibers, etc.
+====
+Need room for sky fibers (20), calibration stars (>=80), guide stars (16). 
+We need to ensure that there is room for these fibers to distribute in
+the same region as the object fibers.
+
+APOGEE bulge plates plug 300 fibers quite tightly into the middle.
+
+Tightly packing the fibers makes it more likey that a fiber will fall
+out. If we're willing to have a larger fraction of fibers fall out,
+it will be fine. Re-plugging fallen fibers is hard if they are very
+tight.
