@@ -1,5 +1,12 @@
 """
 Defines properties of a BOSS plate, including harness positions and fiber reach.
+
+example:
+  import bossplate
+  bossplate = bossplate.BossPlate()
+  # make some plots:
+  bossplate.plot_fiber_reach(1.0)
+  bossplate.plot_fiber_reach(0.75)
 """
 import numpy as np
 from scipy.interpolate import interp1d
@@ -38,7 +45,7 @@ class BossPlate(object):
         patch = self.ax.add_patch(circ)
         patch.set_zorder(4) # force the circle patch to draw on top
 
-    def plot_fiber_reach(self,radius=1.5):
+    def plot_fiber_reach(self,radius=1.5,save=False):
         """Plot the area reachable by each fiber."""
         self._setup_plot()
         for b,fibers in self.blocks.items():
@@ -50,11 +57,17 @@ class BossPlate(object):
         if radius != 1.5:
             self._draw_circle(radius,2)
         self.ax.set_title('fiber reach, r=%4.2f$^\circ$'%radius)
-        plt.savefig('../plots/fiber_reach_%4.2f.png'%radius,dpi=72,bbox_inches='tight')
+        if save:
+            plt.savefig('../plots/fiber_reach_%4.2f.png'%radius,dpi=72,bbox_inches='tight')
     #...
     
-    def plot_fiber_noreach(self,radius=1.5):
-        """Plots the fibers that do not reach into the given radius."""
+    def plot_fiber_noreach(self,radius=1.5,save=False):
+        """
+        Plots the fibers that do not reach into the given radius.
+        
+        Rather stupid, as if r is small, the harness inside r will register as
+        not reaching because none of their reach positions are within r.
+        """
         self._setup_plot()
         self._draw_circle(radius,2)
         reaches = np.zeros(len(self.fibers),dtype=bool)
@@ -70,7 +83,8 @@ class BossPlate(object):
         missing = sum(~reaches)
         frac_missing = missing/float(len(self.fibers))
         self.ax.set_title("%d (%3f%%) fibers didn't reach"%(missing,frac_missing))
-        plt.savefig('../plots/fiber_noreach_%4.2f.png'%radius,dpi=72,bbox_inches='tight')        
+        if save:
+            plt.savefig('../plots/fiber_noreach_%4.2f.png'%radius,dpi=72,bbox_inches='tight')        
     
     def read_block_par_file(self):
         """
