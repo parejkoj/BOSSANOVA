@@ -5,7 +5,6 @@ proposal.
 import os.path
 
 import numpy as np
-from scipy.interpolate import interp1d
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -54,86 +53,6 @@ def one_plate(radec,mask=None):
     np.random.shuffle(targs)
     return targs[:900]
 #...
-
-def read_block_par_file():
-    """
-    Reads fiberBlocksBOSS.par and returns a numpy array.
-    Should really use the .parfile stuff from yanny, but...
-    """
-    import csv
-    types = ['i4','f8','f8']
-    names = ['blockid','x','y']
-    infile = file('../data/fiberBlocksBOSS.par')
-    incsv = csv.reader(infile,delimiter=' ')
-    i = 0
-    # remove the header, etc.
-    while i < 18:
-        line = infile.readline()
-        i += 1
-    fibers = []
-    for line in incsv:
-        fibers.append((line[1],line[2],line[3]))
-    fibers = np.array(fibers,dtype=np.dtype(zip(names,types)))
-    blocks = {}
-    for f in fibers:
-        block = f['blockid']
-        if block  not in blocks:
-            blocks[block] = np.zeros(20,dtype=zip(names[1:],types[1:]))
-            i = 0
-        blocks[block][i] = (f['x'],f['y'])
-        i += 1        
-    return fibers,blocks
-
-
-def plot_fiber_reach(blocks):
-    """Plot the area reachable by each fiber."""
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.axis('equal')
-    reach = fiber_reach()
-    colors = [cm.hsv(x) for x in np.linspace(0,1,len(blocks))]
-    for b,fibers in blocks.items():
-        for f in fibers:
-            ax.plot(f[0]+reach[:,0],f[1]+reach[:,1],color=colors[b-1],lw=1)
-        #if b > 10: break
-    circ = matplotlib.patches.Circle((0,0),1.5,facecolor='none',edgecolor='black',lw=4)
-    patch = ax.add_patch(circ)
-    patch.set_zorder(4) # force the circle patch to draw on top
-    ax.axis((-2.,2.,-2.,2.))
-    ax.set_title('fiber reach, colored by harness')
-    plt.savefig('../plots/fiber_reach.png',dpi=72,bbox_inches='tight')
-            
-def fiber_reach(interp='linear',npoints=1e2):
-    """Returns an array of points representing the reach of a fiber in xy (degrees)."""
-    reach = fiber_reach_values()
-    r = np.sqrt((reach[:]**2).sum(axis=1))
-    theta = np.arctan2(reach[:,1],reach[:,0])
-    # interp1d needs monotonically increasing values
-    idx = np.argsort(theta)
-    theta = theta[idx]
-    r = r[idx]
-    new_theta = np.arange(-1,1,1/npoints)*np.pi
-    # 3rd order spline interpolator
-    f = interp1d(theta,r,kind=interp,bounds_error=False)
-    new_r = f(new_theta)
-    return np.array(zip(new_r*np.cos(new_theta),new_r*np.sin(new_theta)))
-
-def fiber_reach_values():
-    """
-    Returns an array of the fiber reach values for a boss cart.
-    In order to determine the actual reach of a given fiber,
-    one should interpolate between these values in polar coordinates.
-    
-    Values are given in degrees relative to each individual fiber position.
-    
-    Taken from platedesign/pro/plate/boss_reachvalues.pro
-    """
-    platescale = 217.7358
-    xcm= [25., 20., 15., 10., 5., 0., -5., -10., -15., -17., -17., 
-          -17., -15., -10., -5., 0., 5., 10., 15., 20.]
-    ycm= [0., 15., 19., 21., 22., 22., 22., 20., 15., 2., 0.,
-          -2., -15., -20., -22., -22., -22., -21., -19., -15.]
-    return 10*np.array(zip(xcm,ycm))/platescale
 
 def check_pluggability():
     """
