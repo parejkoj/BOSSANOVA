@@ -48,9 +48,11 @@ platedesign products.
   bosstile/pro/chunk/bosstile_plugtest.pro
 runs through the tiles and calls:
   bosstile/pro/chunk/plugtest.pro
-which converts positions in sky-coordinates to focal plane positions given a plate center, reads in the fiber harness block descriptions and then calls:
+which converts positions in sky-coordinates to focal plane positions given a
+plate center, reads in the fiber harness block descriptions and then calls:
   platedesign/pro/plate/sdss_plugprob.pro
-which actually assigns fibers to targets. It uses:
+which actually assigns fibers to targets. 
+sdss_plugprob.pro uses (via the parameter reachfunc):
   platedesign/pro/plate/boss_reachcheck.pro
 to determine how far each fiber can reach, which takes the values from:
   platedesign/pro/plate/boss_reachvalues.pro
