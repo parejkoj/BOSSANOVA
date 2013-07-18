@@ -9,7 +9,6 @@ import numpy as np
 
 import matplotlib
 import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap
 from matplotlib import cm
 plt.ion()
 
@@ -18,28 +17,11 @@ import pairs.mr_spherematch
 
 coll_r = 62./3600. # fiber collision radius
 
-def draw_circle(ax,center=(0,0),radius=1.5,lw=4,color='black',map=None):
+def draw_circle(ax,center=(0,0),radius=1.5,lw=4,color='black'):
     """Draws an r degree radius circle at center on the current ax instance."""
-    if map:
-        """t = np.linspace(0,np.pi*2,1000)
-        x = (radius * np.cos(t)) + center[0]
-        y = (radius * np.sin(t)) + center[1]
-        import pdb
-        pdb.set_trace()
-        #x,y = map(x,y)
-        ax.plot(x,y,'-',color=color,lw=lw)"""
-        map.tissot(center[0],center[1],radius,100,facecolor='none',edgecolor=color)
-    else:
-        circ = matplotlib.patches.Circle(center,radius,facecolor='none',edgecolor=color,lw=lw)
-        patch = ax.add_patch(circ)
-        patch.set_zorder(4) # force the circle patch to draw on top
-
-def setup_map(center):
-    """Setup a celestial basemap for plotting on."""
-    height = 8
-    width = 8
-    return Basemap(projection='laea',lon_0=center[0],lat_0=center[1],
-                   celestial=True,height=height,width=width,rsphere=180./np.pi)
+    circ = matplotlib.patches.Circle(center,radius,facecolor='none',edgecolor=color,lw=lw)
+    patch = ax.add_patch(circ)
+    patch.set_zorder(4) # force the circle patch to draw on top
 
 def one_plate(radec,mask=None):
     """
@@ -102,16 +84,20 @@ def check_pluggability():
     """
 #...
 
+def get_xy(radec,center):
+    """Returns x,y to be plotted in ra/dec degrees."""
+    return ((radec[:,0]-center[0])*np.cos(np.radians(radec[:,1])))+center[0],radec[:,1]
+
 def plot_plate(radec,center,hexbin=False,filename=None):
     """Make a plot of the targets on their 'plate'."""
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.axis('equal')
-    map = setup_map(center)
-    #draw_circle(ax,center=center,radius=1.5,map=map)
+    draw_circle(ax,center=center,radius=1.5)
+    draw_circle(ax,center=center,radius=1.,lw=2)
     ax.set_xlabel('RA (deg)')
     ax.set_ylabel('Dec (deg)')
-    x,y = map(radec[:,0],radec[:,1])
+    x,y = get_xy(radec,center)
     if hexbin:
         ax.hexbin(x,y,mincnt=1)
     else:
@@ -121,10 +107,9 @@ def plot_plate(radec,center,hexbin=False,filename=None):
         plt.savefig(os.path.join('../plots/',filename),bbox_inches='tight')
 #...
 
-def plot_one_plate(fig,ax,map,radec,center,color=None,label=''):
+def plot_one_plate(fig,ax,radec,center,color=None,label=''):
     """Make a plot of the targets on a single plate."""
-    #x,y = radec[:,0],radec[:,1]
-    x,y = map(radec[:,0],radec[:,1])
+    x,y = get_xy(radec,center)
     ax.scatter(x,y,s=6,marker='x',c=color,label=label)
 
 def do_dat(targfile):
@@ -137,21 +122,25 @@ def do_dat(targfile):
     print 'targs: ',len(radec)
     plot_plate(radec,center,hexbin=True,filename='%s-alltargs.pdf'%name)
     plates = make_plates(radec,center,name)
-    fig = plt.figure()
+    total = sum([len(p) for p in plates])
+    remain = len(radec) - total
+    complete = total/float(len(radec))*100
+    
+    fig = plt.figure(figsize=(8,8))
     ax = fig.add_subplot(111)
     ax.axis('equal')
+    r = 1.5
+    ax.axis((center[0]-r,center[0]+r,center[1]-r,center[1]+r))
     ax.set_xlabel('RA (deg)')
     ax.set_ylabel('Dec (deg)')
     colors = ['red','green','blue','cyan','brown','magenta','yellow']
-    map = setup_map(center)
     for i,(c,p) in enumerate(zip(colors,plates)):
-        plot_one_plate(fig,ax,map,radec[p],center,color=c,label='%d'%i)
+        plot_one_plate(fig,ax,radec[p],center,color=c,label='%d: %d'%(i+1,len(p)))
+    ax.set_title('NSA%s: %d targets remain (%d%% complete)'%(name,remain,complete))
     ax.legend()
-    #draw_circle(ax,center,1.5,map=map)
-    #draw_circle(ax,center,1.,lw=2,map=map)
-    plt.savefig('../plots/%s-allplates.png'%name)
-    import pdb
-    pdb.set_trace()
+    draw_circle(ax,center,1.5)
+    draw_circle(ax,center,1.,lw=2)
+    plt.savefig('../plots/%s-allplates.png'%name,dpi=100,bbox_inches='tight')
 #...
 
 def make_plates(radec,center,name):
@@ -160,15 +149,17 @@ def make_plates(radec,center,name):
     remaining = len(radec[unpicked])
     prev = len(radec)
     plates = []
-    while remaining > 800:
+    while remaining > 500:
         prev = remaining
         targs = one_plate(radec[unpicked])#,np.nonzero(unpicked)[0])
         plate = [a[targs] for a in np.where(unpicked)][0]
         unpicked[plate] = False
         remaining = len(radec[unpicked])
         plates.append(plate)
-        plot_plate(radec[plate],center)
+        #plot_plate(radec[plate],center)
         print 'Remaining:',remaining
+        import pdb
+        pdb.set_trace()
         #raw_input('blah')
     return plates
 
@@ -194,18 +185,24 @@ def do_fits(targfile):
 def main(argv=None):
     if argv is None: argv = sys.argv[1:]
     from optparse import OptionParser, OptionGroup
-    
-    usage = '%prog TARGETFILE'
-    try:
-        targfile = argv[0]
-    except IndexError:
-        print 'Must provide TARGETFILE.'
-        return -1
-    
-    if '.fits' in targfile:
-        do_fits(targfile)
-    elif '.dat' in targfile:
-        do_dat(targfile)
+    usage = '%prog [OPTS] TARGETFILE'
+    parser = OptionParser(usage)
+
+    i = 0
+    while True:
+        try:
+            targfile = argv[i]
+        except IndexError:
+            if i == 0:
+                print 'Must provide TARGETFILE.'
+                return -1
+            else:
+                return
+        if '.fits' in targfile:
+            do_fits(targfile)
+        elif '.dat' in targfile:
+            do_dat(targfile)
+        i+=1
 #...
 
 if __name__ == '__main__':
