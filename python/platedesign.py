@@ -120,7 +120,7 @@ def do_dat(targfile):
     center = np.array((ra,dec),dtype=float)
     radec = np.loadtxt(infile)
     print 'targs: ',len(radec)
-    plot_plate(radec,center,hexbin=True,filename='%s-alltargs.pdf'%name)
+    plot_plate(radec,center,hexbin=True,filename='%s-alltargs.png'%name)
     plates = make_plates(radec,center,name)
     total = sum([len(p) for p in plates])
     remain = len(radec) - total
@@ -158,8 +158,6 @@ def make_plates(radec,center,name):
         plates.append(plate)
         #plot_plate(radec[plate],center)
         print 'Remaining:',remaining
-        import pdb
-        pdb.set_trace()
         #raw_input('blah')
     return plates
 
